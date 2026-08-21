@@ -1,0 +1,147 @@
+---
+name: document-design
+description: Use when assembling a multi-page A4 PDF document — provides the layout system (colour roles from the active profile, fonts and size scale, page-block templates, round photo frame, contacts block, clickable-link rules) and the render pipeline. The pdf-builder subagent opens this while building guide.html.
+---
+
+# Оформление документа
+
+Каркас и весь CSS — в `templates/skeleton.html`. **Цвета и шрифты приходят из профиля**
+(`context/theme.css`, собирается `scripts/brand_build.py`). Здесь — как этим пользоваться:
+роли цветов, шкала кеглей, блоки страниц, правила ссылок и рендер.
+
+## 1 · Цвета — по ролям, не по названиям
+
+В вёрстке **только переменные**. Ни одного жёсткого HEX — иначе документ нельзя будет
+пересобрать в другом профиле.
+
+| Переменная | Роль | Где применяется |
+|---|---|---|
+| `--navy` / `--graphite` | тёмные фоны | градиент тёмной страницы |
+| `--warm-white` / `--cream` | светлые фоны | градиент светлой страницы |
+| `--burgundy` | главный акцент | акцентное слово, рамки, значки на светлом |
+| `--red-mid` / `--red` | акцент средний / яркий | графики, шкалы, выделения |
+| `--gold` / `--gold-soft` | тёплый и тёплый мягкий | кикеры, цитаты, подписи на тёмном |
+| `--ink` / `--ink-soft` | текст и вторичный текст | всё на светлых страницах |
+| `--line` | разделители | линии, границы карточек |
+
+Полупрозрачность — через `rgba(var(--gold-rgb),.3)` и такие же `-rgb`-переменные у любой роли.
+
+Фоны — **только градиентами**: тёмный `--navy → --graphite`, светлый `--warm-white → --cream`.
+Чистый чёрный и чистый белый не используем.
+Шкала сложности (если нужна): просто — зелёный из палитры профиля, средне — `--gold`,
+сложно — `--red-mid`, очень сложно — `--burgundy`.
+
+## 2 · Шрифты и шкала кеглей
+
+`var(--font-heading)` — заголовки, цифры, кикеры, значки. `var(--font-body)` — весь текст.
+Имена шрифтов заданы в профиле, файлы лежат в `assets/fonts/`.
+
+**Кегль крупный — документ читают с телефона и ноутбука.** `body` — 10.5pt.
+
+| Роль | Кегль |
+|---|---|
+| Основной текст, абзацы, списки | **10.5pt** (минимум 10pt) |
+| Вторичный текст, подписи, ячейки таблиц | 9–10pt |
+| Мелкие метки, теги-чипы | **не ниже 7.5pt** (абсолютный пол) |
+| Кикер 9–11pt · подвал 7.5pt · `h3` 14–15pt · `h2` 17–19pt · `h1` 24–26pt | крупные цифры ≥20pt |
+
+⛔ При переполнении кегль **не опускаем** — излишек переносим на новую страницу.
+
+## 3 · Каркас и блоки
+
+- `templates/skeleton.html` — `@page` (A4, поля 0), `.page` + `.light`/`.dark`, `.pad`,
+  подвал `.footer`, текстура `.grid-tex`, пятна `.glow`, рамка фото, CSS контактов, пилюли `.lvl`.
+  Первой строкой подключается `context/theme.css` — тема активного профиля.
+- `templates/blocks/` — 8 типов: `cover` (тёмн.) · `what-inside` (свет.) · `table` (свет.) ·
+  `conclusions` (свет.) · `links-catalog` (тёмн.) · `rules` (свет.) · `quote` (тёмн.) · `author` (свет.).
+  В блоках стоят плейсхолдеры `{{ … }}` — заполняются содержанием и данными профиля.
+- Подвал на каждой странице:
+  `<div class="footer"><span>РАЗДЕЛ <span class="sep">•</span> НАЗВАНИЕ</span><span>04</span></div>`
+
+## 4 · Автор, фото, логотип — всё из профиля
+
+> ⛔ **Данные об авторе — только из `context/автор.md`, дословно.** Не выдумывать цифры и
+> регалии. Нет факта — блок короче. **Страница «Об авторе» — ровно одна**, и контакты на ней
+> же (отдельной последней страницей их не выносим — до неё могут не долистать).
+
+- **Фото:** `assets/профиль/фото-круг.jpg` (готовит `scripts/prep_photo.py`).
+  Нет фото в профиле — блок собирается без него, заглушку не рисуем.
+- **Логотип:** на тёмных страницах — `assets/профиль/логотип-на-тёмном.*`, на светлых —
+  `логотип-на-светлом.*`. Без белых подложек и CSS-фильтров.
+- **Обложка:** логотип + фото автора, интегрированные в композицию, кикер, название,
+  подзаголовок. ⛔ На обложке нет метрик автора и мета-подписей («методичка к уроку», «№ 3 из 7»).
+- 📏 **Заполненность ≥ ⅔, единый top-align** (не центрировать). Мало содержания — добавить
+  относящуюся к делу **проверяемую** информацию с краткой атрибуцией, а не растянуть блоки.
+- 🌊 **Вёрстка потоком:** новый лист — когда предыдущий заполнен на 85–95 %, а не на каждый
+  раздел. Карточки `height:auto`. ⛔ Никаких `flex:1`, `height:100%`, `min-height` ради
+  заполнения листа. (Исключение — инструкции со скриншотами: там «один крупный кадр на страницу».)
+
+```html
+<div class="photo-ring"><div class="photo-glow"></div>
+  <div class="photo-inner"><img src="assets/профиль/фото-круг.jpg" alt="{{ имя }}"></div>
+</div>
+```
+
+## 5 · Блок контактов (по одной строке на контакт из профиля)
+
+```html
+<div class="contacts-wrap">
+  <div class="contacts-h">{{ подпись, напр. «Найдите меня здесь» }}</div>
+  <div class="contacts">
+    <a href="{{ полный https:// }}" target="_blank" rel="noopener noreferrer"><span class="ic">{{ Б }}</span><span class="tx"><b>{{ название }}</b><small>{{ адрес }}</small></span><span class="arr">↗</span></a>
+  </div>
+</div>
+```
+Контактов в профиле нет — блок не ставим совсем.
+
+## 6 · Кликабельные ссылки (обязательно)
+
+- Любая ссылка — тег `<a href="ПОЛНЫЙ_https://адрес" target="_blank" rel="noopener noreferrer">`,
+  а не текст: Chromium превращает такой тег в настоящую ссылку-аннотацию внутри PDF.
+- **«Что внутри» — это оглавление:** каждый пункт `<a href="#sec-xxx" class="toc">`, у раздела
+  совпадающий `id`. Получаются внутренние переходы: клик по теме ведёт на её страницу.
+- В каталоге ссылок в анкор оборачивается вся строка целиком.
+- В подписи можно показать короткий вид, в `href` — всегда полный адрес.
+
+## 7 · Рендер
+
+```bash
+.venv/bin/python scripts/render.py guide-<slug>.html output/<Имя>.pdf
+.venv/bin/python scripts/check_links.py output/<Имя>.pdf
+.venv/bin/python scripts/qa_screenshots.py output/<Имя>.pdf qa-<slug>
+```
+`print_background=True` внутри `render.py` обязателен — без него пропадут фоны и градиенты.
+
+## 8 · Визуал — графики, схемы, иконки, картинки
+
+> 📊 **Минимум насыщенности:** каждая светлая контентная страница несёт ≥1 крупный
+> графический элемент; на документ — ≥2 графика и ≥1 схема. Таблица визуалом не считается.
+> Числа в графиках — только настоящие; концептуальные схемы помечать «пример».
+
+Подключение локальное, без интернета:
+`<script src="assets/vendor/chart.min.js"></script>` · `<script src="assets/vendor/mermaid.min.js"></script>`
+
+```html
+<script>
+  mermaid.initialize({startOnLoad:true, theme:'base', themeVariables:{
+    primaryColor:getComputedStyle(document.documentElement).getPropertyValue('--burgundy'),
+    primaryTextColor:getComputedStyle(document.documentElement).getPropertyValue('--warm-white'),
+    lineColor:getComputedStyle(document.documentElement).getPropertyValue('--gold'),
+    secondaryColor:getComputedStyle(document.documentElement).getPropertyValue('--graphite'),
+    fontFamily:getComputedStyle(document.documentElement).getPropertyValue('--font-heading')}});
+  /* … графики Chart.js, анимация выключена … */
+  window.__chartsReady = true;   /* печать PDF — только после этого флага */
+</script>
+```
+
+- **Графики (Chart.js):** `options:{animation:false}` обязательно — иначе в PDF попадёт
+  недорисованный кадр. Цвета брать из переменных темы, на тёмной странице подписи светлые.
+- **Схемы:** Mermaid, сложная геометрия — чистый inline-SVG.
+- **Иконки:** вставить весь `<svg>` из `templates/icons.svg` в начало `<body>`, дальше
+  `<svg class="ic"><use href="#growth"/></svg>`. Доступны: growth · team · rule · check · risk ·
+  money · time · idea · target · rocket · shield · chat · star · fire · arrow · layers.
+- **AI-картинки — опция, не обязанность.** Есть ключ `GEMINI_API_KEY` в
+  `.claude/settings.local.json` → `.venv/bin/python scripts/illustrate.py "<промпт>" <slug> <aspect> soft`
+  (≤4 на документ, фотореализм, вывод в `assets/generated/`). Ключа нет — документ собирается
+  с векторными заглушками, и это нормальный рабочий режим, а не поломка.
+  В промпте описывай сцену и палитру **активного профиля**, без логотипов и водяных знаков.

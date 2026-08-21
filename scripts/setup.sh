@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Разовая установка окружения для агента-верстальщика PDF.
+# Идемпотентно: можно запускать повторно. Создаёт .venv (изолированно),
+# ставит зависимости, шрифты и Chromium. Запуск: bash scripts/setup.sh
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+# 1. Выбрать базовый python со стабильными колёсами (3.10–3.13; системный 3.14 — без них)
+pick_python() {
+  for c in python3.12 python3.11 python3.13 python3.10 python python3; do
+    command -v "$c" >/dev/null 2>&1 || continue
+    ver=$("$c" -c 'import sys;print(sys.version_info[0]*100+sys.version_info[1])' 2>/dev/null || echo 0)
+    if [ "$ver" -ge 310 ] && [ "$ver" -lt 314 ]; then echo "$c"; return; fi
+  done
+  for c in python python3; do command -v "$c" >/dev/null 2>&1 && { echo "$c"; return; }; done
+}
+
+# 2. venv
+if [ ! -x .venv/bin/python ]; then
+  BASE=$(pick_python)
+  echo "[setup] базовый python: $BASE ($($BASE --version 2>&1))"
+  "$BASE" -m venv .venv
+fi
+VPY=.venv/bin/python
+
+# 3. зависимости
+echo "[setup] зависимости…"
+"$VPY" -m pip install -q --upgrade pip
+"$VPY" -m pip install -q playwright pillow pypdf trafilatura pdfplumber google-genai
+echo "[setup] распознавание речи (локальное)…"
+"$VPY" -m pip install -q faster-whisper av
+
+# 4. Chromium (в общий кэш, быстро если уже скачан)
+echo "[setup] Chromium…"
+"$VPY" -m playwright install chromium
+
+# 5. шрифты
+echo "[setup] шрифты…"
+mkdir -p assets/fonts
+[ -f assets/fonts/Montserrat.ttf ] || curl -sL -o assets/fonts/Montserrat.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf"
+[ -f assets/fonts/OpenSans.ttf ]   || curl -sL -o assets/fonts/OpenSans.ttf   "https://raw.githubusercontent.com/google/fonts/main/ofl/opensans/OpenSans%5Bwdth,wght%5D.ttf"
+[ -f assets/fonts/PTSans.ttf ]     || curl -sL -o assets/fonts/PTSans.ttf     "https://raw.githubusercontent.com/google/fonts/main/ofl/ptsans/PT_Sans-Web-Regular.ttf"
+[ -f assets/fonts/Lora.ttf ]       || curl -sL -o assets/fonts/Lora.ttf       "https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora%5Bwght%5D.ttf"
+[ -f assets/fonts/Inter.ttf ]      || curl -sL -o assets/fonts/Inter.ttf      "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
+[ -f assets/fonts/PlayfairDisplay.ttf ] || curl -sL -o assets/fonts/PlayfairDisplay.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/playfairdisplay/PlayfairDisplay%5Bwght%5D.ttf"
+
+# 6. векторные библиотеки локально (рендер не зависит от сети)
+echo "[setup] vendor (Chart.js, Mermaid)…"
+mkdir -p assets/vendor assets/generated
+[ -f assets/vendor/chart.min.js ]   || curl -sL -o assets/vendor/chart.min.js   "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+[ -f assets/vendor/mermaid.min.js ] || curl -sL -o assets/vendor/mermaid.min.js "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"
+
+# 7. ключ Gemini (для AI-иллюстраций) — необязательно; нет ключа → векторный fallback
+if [ -f .claude/settings.local.json ] && grep -q '"GEMINI_API_KEY": *"[^"]' .claude/settings.local.json 2>/dev/null; then
+  echo "[setup] GEMINI_API_KEY найден в settings.local.json — AI-иллюстрации включены"
+else
+  echo "[setup] GEMINI_API_KEY не задан → AI-картинки пропускаются (впишите ключ в .claude/settings.local.json)"
+fi
+
+echo "[setup] Готово. Дальше: .venv/bin/python scripts/selftest.py — проверить, что всё работает"

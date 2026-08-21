@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<!-- Шрифты и цвета берутся из профиля: context/theme.css собирает
+     scripts/brand_build.py из профили/<имя>/profile.json. Правьте профиль,
+     а не эти строки — тогда один и тот же текст можно собрать в своих цветах,
+     а завтра в цветах клиента. -->
+<link rel="stylesheet" href="context/theme.css">
+<style>
+
+/* ── Каркас страницы ──────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+@page{size:A4;margin:0;}
+body{font-family:var(--font-body);font-weight:400;font-size:10.5pt;line-height:1.55;}  /* база — крупно, читаемо с экрана; пол текста 7.5pt (design-system.md) */
+.page{
+  width:210mm;height:297mm;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.page + .page{page-break-before:always;}  /* разрыв ПЕРЕД страницей — без хвостовой пустой */
+.light{background:linear-gradient(155deg,var(--warm-white),var(--cream));color:var(--ink);}
+.dark {background:linear-gradient(155deg,var(--navy),var(--graphite));color:var(--warm-white);}
+.pad{padding:20mm 18mm 15mm;flex:1;display:flex;flex-direction:column;position:relative;z-index:2;}
+
+/* Заголовки и акцентное слово */
+h1,h2,h3,.kicker,.num,.badge{font-family:var(--font-heading);font-weight:800;}
+.light em{color:var(--burgundy);font-style:normal;}
+.dark  em{color:var(--gold);font-style:normal;}
+.kicker{font-family:var(--font-heading);font-weight:700;font-size:9pt;letter-spacing:.18em;
+        text-transform:uppercase;color:var(--gold);}
+
+/* Подвал на каждой странице */
+.footer{position:absolute;left:18mm;right:18mm;bottom:8mm;z-index:3;
+        display:flex;justify-content:space-between;align-items:center;
+        font-family:var(--font-heading);font-weight:700;font-size:7.5pt;
+        letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);}
+.dark .footer{color:var(--gold-soft);}
+.footer .sep{color:var(--red-mid);}      /* бордовая точка-разделитель */
+
+/* Глубина тёмных страниц: текстура сетки + размытые пятна */
+.grid-tex{position:absolute;inset:0;z-index:1;opacity:.06;
+  background-image:linear-gradient(var(--gold) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--gold) 1px,transparent 1px);
+  background-size:28px 28px;}
+.glow{position:absolute;border-radius:50%;filter:blur(70px);z-index:1;opacity:.5;}
+.glow.red {background:var(--burgundy);}
+.glow.gold{background:var(--gold);}
+
+/* Шкала сложности (пилюли) */
+.lvl{display:inline-block;padding:2px 10px;border-radius:40px;color:#fff;
+     font-family:var(--font-heading);font-weight:700;font-size:8pt;}
+.lvl.easy{background:#6E9B7F;} .lvl.mid{background:var(--gold);color:#3A0E14;}
+.lvl.hard{background:var(--red-mid);} .lvl.veryhard{background:var(--burgundy);}
+
+/* Метрики автора (узкие плашки с широкими значениями, блок author стр. A) */
+.astat{background:rgba(255,255,255,.06);border-radius:10px;padding:11px 12px 12px;text-align:center;border-top:2px solid var(--gold);}
+.astat .n{font-family:var(--font-heading);font-weight:800;font-size:15.5pt;color:var(--gold);line-height:1.08;white-space:nowrap;}
+.astat small{display:block;font-size:7.5pt;color:var(--gold-soft);line-height:1.28;margin-top:5px;}
+
+/* Ключевые достижения — компактная сетка 2×N для ОДНОСТРАНИЧНОГО блока author (ТЁМНАЯ) */
+.ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ach2{display:flex;flex-direction:column;gap:3px;background:rgba(255,255,255,.06);
+  border-radius:9px;padding:8px 11px;border-left:2px solid var(--gold);}
+.ach2 .t{align-self:flex-start;font-family:var(--font-heading);font-weight:700;font-size:7.5pt;
+  letter-spacing:.04em;text-transform:uppercase;color:#3A0E14;
+  background:linear-gradient(135deg,var(--gold-soft),#B8966A);border-radius:20px;
+  padding:2px 8px;white-space:nowrap;}
+.ach2 b{font-family:var(--font-heading);font-weight:700;font-size:8.8pt;color:var(--warm-white);line-height:1.18;}
+.ach2 small{font-size:7.5pt;color:var(--gold-soft);line-height:1.28;}
+/* компактные метрики автора (4+3 на одной странице) */
+.astat.sm{padding:8px 9px 9px;}
+.astat.sm .n{font-size:13.5pt;}
+.astat.sm small{font-size:7.5pt;margin-top:3px;}
+
+/* Оглавление (блок «что внутри»): пункт — кликабельный якорь на раздел (href="#id") */
+.toc{display:flex;align-items:center;gap:14px;background:#fff;border-radius:10px;
+  padding:18px 18px;text-decoration:none;color:inherit;}
+.toc-go{margin-left:auto;flex:none;color:var(--gold);font-family:var(--font-heading);font-weight:800;font-size:18pt;line-height:1;}
+
+/* ── Фото автора в круглой рамке (блок author) ───────────────────────── */
+.photo-ring{width:152px;height:152px;border-radius:50%;padding:5px;position:relative;
+  background:linear-gradient(135deg,var(--gold),var(--burgundy));}
+.photo-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;}
+.photo-inner img{width:100%;height:100%;object-fit:cover;object-position:center 38%;}
+.photo-glow{position:absolute;width:180px;height:180px;border-radius:50%;
+  top:50%;left:50%;transform:translate(-50%,-50%);z-index:-1;filter:blur(6px);
+  background:radial-gradient(circle,rgba(var(--burgundy-rgb),.28),rgba(var(--gold-rgb),.10) 55%,transparent 72%);}
+
+/* ── Блок соцсетей (плашки-анкоры) · ровная сетка, без «плывущих» рядов ── */
+.contacts-wrap{margin-top:auto;}
+.contacts-h{font-family:var(--font-heading);font-weight:700;font-size:11pt;margin-bottom:10px;}
+.contacts{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;}   /* 6 ссылок → 3×2 */
+.contacts a{display:flex;align-items:center;gap:10px;text-decoration:none;
+  background:linear-gradient(135deg,var(--burgundy) 0%,var(--red-mid) 70%,var(--red) 100%);
+  border:1px solid rgba(var(--gold-rgb),.45);border-radius:40px;padding:8px 16px 8px 8px;}
+  /* без box-shadow: в сетке с малым зазором полупрозрачные тени сливаются в «подложку» */
+.contacts a .ic,.contacts a .ic-s{width:27px;height:27px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;flex:none;
+  background:linear-gradient(135deg,var(--gold-soft),#B8966A);color:#3A0E14;
+  font-family:var(--font-heading);font-weight:800;font-size:8.5pt;}
+.contacts a .tx{display:flex;flex-direction:column;line-height:1.12;min-width:0;}
+.contacts a .tx b{font-family:var(--font-heading);font-weight:700;font-size:9pt;color:#fff;white-space:nowrap;}
+.contacts a .tx small{font-size:7.5pt;color:#F2DFC6;white-space:nowrap;}
+.contacts a .arr{margin-left:auto;color:var(--gold-soft);font-family:var(--font-heading);font-weight:800;font-size:10pt;}
+
+/* Каталог ссылок: вся строка — кликабельный анкор */
+a.lnk{text-decoration:none;color:inherit;border-radius:8px;}
+
+/* ── PDF-SAFE: НИКАКИХ box-shadow (глобальный предохранитель) ──
+   В печати (Quartz/Preview) полупрозрачные тени соседних карточек в плотных
+   сетках накапливаются в зазорах и сливаются в тёмную «подложку». Бренд держится
+   на бордюрах и градиентах, не на тенях. !important глушит и инлайновые box-shadow,
+   если их по ошибке добавит вёрстка guide.html. PDFium тени не рисует — поэтому
+   баг виден только в Quartz; см. обновлённый scripts/qa_screenshots.py. */
+.page, .page *{ box-shadow:none !important; }
+</style>
+</head>
+<body>
+<!--
+  Каждая страница — <section class="page light"> … </section> или "page dark".
+  Внутри: <div class="pad"> контент </div> + <div class="footer">…</div>.
+  Блоки берутся из templates/blocks/*. Баланс тёмных/светлых — 30/70.
+  Шаблон подвала:
+  <div class="footer"><span>РАЗДЕЛ <span class="sep">•</span> НАЗВАНИЕ</span><span>04</span></div>
+-->
+</body>
+</html>
