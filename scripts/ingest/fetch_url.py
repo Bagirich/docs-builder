@@ -6,17 +6,20 @@
 авторизации / кредитов либо пустой результат) — молча откатываемся на
 trafilatura. В логе печатается, какой движок сработал.
 
-Использование: python scripts/ingest/fetch_url.py <URL>
+Использование: python scripts/ingest/fetch_url.py <URL> [--слаг имя]
 """
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 import trafilatura
 
-OUT = "ingest/raw.txt"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from paths import вынуть_слаг, сырой  # noqa: E402
+
 FIRECRAWL_TIMEOUT = 90  # сек — это сетевой вызов
 
 
@@ -69,8 +72,9 @@ def fetch_trafilatura(url):
     ) or None
 
 
-def main(url):
+def main(url, слаг=None):
     os.makedirs("ingest", exist_ok=True)
+    out = сырой(слаг)
 
     text = fetch_firecrawl(url)
     engine = "firecrawl"
@@ -80,12 +84,13 @@ def main(url):
     if not text:
         sys.exit(f"Не удалось извлечь основной текст со страницы: {url}")
 
-    with open(OUT, "w", encoding="utf-8") as f:
+    with open(out, "w", encoding="utf-8") as f:
         f.write(text)
-    print(f"Извлечено {len(text)} символов -> {OUT} (движок: {engine})")
+    print(f"Извлечено {len(text)} символов -> {out} (движок: {engine})")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
+    слаг, аргументы = вынуть_слаг(sys.argv[1:])
+    if not аргументы:
         sys.exit("Укажите URL")
-    main(sys.argv[1])
+    main(аргументы[0], слаг)

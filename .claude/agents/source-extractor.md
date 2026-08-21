@@ -14,12 +14,12 @@ model: sonnet
 > Все скрипты — через `.venv/bin/python` (если нет окружения: `bash scripts/setup.sh`).
 
 ## URL
-1. `.venv/bin/python scripts/ingest/fetch_url.py <URL>` → `ingest/raw.txt`. Движок выбирается сам: **Firecrawl** (основной — тянет JS/SPA) с откатом на **trafilatura**; в логе видно, какой сработал (`движок: …`).
+1. `.venv/bin/python scripts/ingest/fetch_url.py <URL> --слаг <slug>` → `ingest/raw-<slug>.txt`. Движок выбирается сам: **Firecrawl** (основной — тянет JS/SPA) с откатом на **trafilatura**; в логе видно, какой сработал (`движок: …`).
 2. Если скрипт упал или текст пустой — попробуй инструмент WebFetch. Для многостраничных/сложных источников можно звать `firecrawl map "<URL>"` (карта ссылок) и `firecrawl scrape "<URL>" --only-main-content` напрямую.
 3. Если контента всё равно нет → верни статус «URL недоступен» и попроси прислать текст вручную. **Не выдумывай содержимое.**
 
 ## Чужой PDF
-1. `.venv/bin/python scripts/ingest/extract_pdf.py <file.pdf>` → `ingest/raw.txt`.
+1. `.venv/bin/python scripts/ingest/extract_pdf.py <file.pdf> --слаг <slug>` → `ingest/raw-<slug>.txt`.
 2. Если скрипт предупредил, что текста почти нет (картиночная презентация) — прочитай страницы PDF **визуально** (Read по файлу) и собери смысл сам.
 
 ## Запись голоса или встречи (mp3, m4a, wav, mp4, mov)
@@ -37,7 +37,7 @@ model: sonnet
    `.claude/rules/learning-guide-spec.md` (там же — честные границы этого входа).
 
 ## Нормализация
-`.venv/bin/python scripts/ingest/normalize.py`, затем доведи `ingest/normalized-<slug>.md` вручную: заголовки (`#`/`##`), абзацы, списки, таблицы, ссылки анкорами с полным `https://`.
+`.venv/bin/python scripts/ingest/normalize.py --слаг <slug>`, затем доведи `ingest/normalized-<slug>.md` вручную: заголовки (`#`/`##`), абзацы, списки, таблицы, ссылки анкорами с полным `https://`.
 
 ## Что вернуть оркестратору
 Только: тип источника, число разделов, ~число слов, число ссылок (для скринкаста — ещё число шагов и кадров), путь к файлу. Без самого текста.

@@ -13,6 +13,7 @@
 """
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -149,8 +150,10 @@ def собрать_тему(профиль):
         "/* Тема документа. ФАЙЛ СОБИРАЕТСЯ АВТОМАТИЧЕСКИ — правьте профиль, а не его. */",
         f"/* Профиль: {профиль['профиль']} — {профиль.get('название', '')} */",
         "",
-        f"@font-face{{font-family:'{заголовки}';src:url('assets/fonts/{файл_загл}');font-weight:100 900;}}",
-        f"@font-face{{font-family:'{текст}';src:url('assets/fonts/{файл_текст}');font-weight:300 800;}}",
+        # Путь считается ОТ ЭТОГО ФАЙЛА (он лежит в context/), а не от корня —
+        # иначе браузер ищет шрифт в context/assets/ и молча печатает системным.
+        f"@font-face{{font-family:'{заголовки}';src:url('../assets/fonts/{файл_загл}');font-weight:100 900;}}",
+        f"@font-face{{font-family:'{текст}';src:url('../assets/fonts/{файл_текст}');font-weight:300 800;}}",
         "",
         ":root{",
         f"  --font-heading:'{заголовки}',sans-serif;",
@@ -229,6 +232,20 @@ def скопировать_активы(имя, профиль):
             предупреждения.append(f"{ключ}: файл «{путь}» не найден — блок соберётся без него")
             continue
         shutil.copy2(источник, ASSETS / (новое_имя + источник.suffix))
+
+    # Круглый кадр для страницы «Об авторе» лежал в этой же папке и только что был
+    # стёрт вместе с активами прошлого профиля. Пересобираем сразу: иначе человек
+    # правит цвет в профиле, а фото автора молча пропадает из готового документа.
+    if any(ASSETS.glob("фото.*")):
+        готово = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "prep_photo.py")],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        if готово.returncode != 0:
+            предупреждения.append(
+                "круглое фото для страницы «Об авторе» пересобрать не вышло — "
+                "запустите вручную: .venv/bin/python scripts/prep_photo.py"
+            )
     return предупреждения
 
 

@@ -27,6 +27,7 @@ assets/fonts/
 assets/vendor/
 assets/generated/
 assets/shots-*/
+assets/сетка/
 __pycache__/
 *.pyc
 .DS_Store
