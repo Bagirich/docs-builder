@@ -16,7 +16,16 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     url = "file://" + os.path.abspath(SRC)
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        # Обычный запуск браузера. В некоторых песочницах (например, когда систему ведёт
+        # Codex на macOS) дочерние процессы Chromium не могут зарегистрироваться в системе
+        # и запуск падает. Тогда повторяем в однопроцессном режиме: медленнее, но работает.
+        # Найдено живым прогоном на Codex 22.08.2026.
+        try:
+            browser = p.chromium.launch()
+        except Exception as ошибка:
+            print(f"[render] обычный запуск браузера не удался ({type(ошибка).__name__}),"
+                  " пробую однопроцессный режим — так бывает под песочницей")
+            browser = p.chromium.launch(args=["--single-process"])
         page = browser.new_page()
         page.goto(url, wait_until="networkidle")
         # дождаться графиков/схем, если они есть (флаг ставит guide.html); иначе быстрый тайм-аут
