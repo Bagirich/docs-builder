@@ -16,12 +16,43 @@ pick_python() {
 }
 
 # 2. venv
-if [ ! -x .venv/bin/python ]; then
+# ⚠️ Windows кладёт python в .venv/Scripts/, а не в .venv/bin/ — а вся документация системы
+# и все команды агентов написаны через .venv/bin/python (99 мест). Поэтому на Windows мы
+# создаём .venv/bin/python как маленькую обёртку к .venv/Scripts/python.exe: один файл вместо
+# правки всей документации, и одинаковая команда на обеих системах.
+venv_python() {
+  if [ -x .venv/bin/python ]; then echo .venv/bin/python
+  elif [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/python.exe
+  elif [ -f .venv/Scripts/python.exe ]; then echo .venv/Scripts/python.exe
+  fi
+}
+
+if [ -z "$(venv_python)" ]; then
   BASE=$(pick_python)
+  if [ -z "${BASE:-}" ]; then
+    echo "[setup] ❌ не нашёл Python. Поставьте Python 3.12 и запустите установку снова."
+    exit 1
+  fi
   echo "[setup] базовый python: $BASE ($($BASE --version 2>&1))"
   "$BASE" -m venv .venv
 fi
-VPY=.venv/bin/python
+
+REAL=$(venv_python)
+if [ -z "${REAL:-}" ]; then
+  echo "[setup] ❌ окружение создалось, но python в нём не найден (ни .venv/bin, ни .venv/Scripts)."
+  exit 1
+fi
+
+# Мостик для Windows: .venv/bin/python → .venv/Scripts/python.exe
+if [ ! -e .venv/bin/python ] && [ -e .venv/Scripts/python.exe ]; then
+  echo "[setup] Windows: делаю .venv/bin/python мостиком к .venv/Scripts/python.exe"
+  mkdir -p .venv/bin
+  printf '#!/bin/sh\nexec "$(dirname "$0")/../Scripts/python.exe" "$@"\n' > .venv/bin/python
+  chmod +x .venv/bin/python
+fi
+
+VPY=$(venv_python)
+[ -x .venv/bin/python ] && VPY=.venv/bin/python
 
 # 3. зависимости
 echo "[setup] зависимости…"
@@ -72,3 +103,4 @@ else
 fi
 
 echo "[setup] Готово. Дальше: .venv/bin/python scripts/selftest.py — проверить, что всё работает"
+echo "[setup] (python окружения: $VPY)"
