@@ -31,8 +31,22 @@ echo "[setup] распознавание речи (локальное)…"
 "$VPY" -m pip install -q faster-whisper av
 
 # 4. Chromium (в общий кэш, быстро если уже скачан)
+# Установка изредка зависает намертво — например, когда Chromium уже в кэше, а команда всё
+# равно ждёт сеть. Поэтому ограничиваем время и НЕ роняем установку: остальные шаги важнее,
+# а браузер можно доставить отдельной командой. Найдено живым прогоном на Codex 22.08.2026.
 echo "[setup] Chromium…"
-"$VPY" -m playwright install chromium
+CHROMIUM_TIMEOUT=${CHROMIUM_TIMEOUT:-600}
+if command -v timeout >/dev/null 2>&1; then
+  timeout "$CHROMIUM_TIMEOUT" "$VPY" -m playwright install chromium || CHROMIUM_FAILED=1
+elif command -v gtimeout >/dev/null 2>&1; then
+  gtimeout "$CHROMIUM_TIMEOUT" "$VPY" -m playwright install chromium || CHROMIUM_FAILED=1
+else
+  "$VPY" -m playwright install chromium || CHROMIUM_FAILED=1
+fi
+if [ "${CHROMIUM_FAILED:-0}" = "1" ]; then
+  echo "[setup] ⚠️  браузер не доустановился (долго или нет сети) — остальное поставлю."
+  echo "[setup]     Доставить потом: .venv/bin/python -m playwright install chromium"
+fi
 
 # 5. шрифты
 echo "[setup] шрифты…"
