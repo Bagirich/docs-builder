@@ -57,7 +57,7 @@ VPY=$(venv_python)
 # 3. зависимости
 echo "[setup] зависимости…"
 "$VPY" -m pip install -q --upgrade pip
-"$VPY" -m pip install -q playwright pillow pypdf trafilatura pdfplumber google-genai
+"$VPY" -m pip install -q playwright pillow pypdf trafilatura pdfplumber google-genai pymupdf
 echo "[setup] распознавание речи (локальное)…"
 "$VPY" -m pip install -q faster-whisper av
 

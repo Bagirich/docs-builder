@@ -1,9 +1,10 @@
 """Визуальный QA по НАСТОЯЩЕМУ PDF (а не по HTML).
 
-Рендерит каждую страницу output/output.pdf в PNG (qa/pageNN.png) через Quartz —
-тот же движок, что и macOS Preview. Это принципиально: Quartz рисует box-shadow,
-прозрачности и градиенты так же, как их увидит человек, а pypdfium2/PDFium тени
-НЕ рисует и маскирует дефекты вроде тёмной «подложки» за карточками.
+Рендерит каждую страницу output/output.pdf в PNG (qa/pageNN.png). На macOS — через
+sips (Quartz, тот же движок, что и macOS Preview): он рисует box-shadow, прозрачности
+и градиенты так же, как их увидит человек, а pypdfium2/PDFium тени НЕ рисует и
+маскирует дефекты вроде тёмной «подложки» за карточками. На Windows и Linux (или если
+sips не нашёлся) — через PyMuPDF, картинка получается сопоставимая.
 
 Бонус: печатает метрику заполнения каждой страницы (до какой доли высоты доходит
 непустой контент, без зоны подвала) и помечает ⚠ светлые страницы, заполненные
@@ -15,7 +16,8 @@
 замыслу; их метрика печатается, смотреть глазами.
 
 Использование: .venv/bin/python scripts/qa_screenshots.py [путь_к.pdf]
-Требует macOS (sips). pypdf + Pillow + numpy уже в окружении.
+Кроссплатформенно (macOS/Windows/Linux) — см. выше. pypdf + Pillow + numpy + pymupdf
+уже в окружении (ставит `scripts/setup.sh`).
 """
 import os
 import sys
@@ -36,6 +38,24 @@ FOOTER_ZONE = 0.92       # нижние 8% — зона подвала, не с�
 MAX_DIM = 1400           # макс. сторона PNG (для лёгких файлов)
 
 
+def _sips_usable() -> bool:
+    """sips есть только на macOS. DOCS_BUILDER_NO_SIPS=1 — отладочный флаг, чтобы
+    руками прогнать ветку PyMuPDF и на маке (проверка кроссплатформенности)."""
+    return (
+        sys.platform == "darwin"
+        and os.environ.get("DOCS_BUILDER_NO_SIPS") != "1"
+        and shutil.which("sips") is not None
+    )
+
+
+def _fitz_usable() -> bool:
+    try:
+        import pymupdf  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
 def quartz_png(src_pdf: str, dst_png: str) -> bool:
     """PDF (1 стр.) -> PNG через sips (Quartz). True при успехе."""
     r = subprocess.run(
@@ -44,6 +64,34 @@ def quartz_png(src_pdf: str, dst_png: str) -> bool:
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     return r.returncode == 0 and os.path.exists(dst_png)
+
+
+def fitz_png(src_pdf: str, dst_png: str) -> bool:
+    """PDF (1 стр.) -> PNG через PyMuPDF. True при успехе.
+
+    dpi подобран так же, как -Z у sips: самая длинная сторона листа приводится
+    к MAX_DIM пикселей (страница PDF считается в points, 72 pt/дюйм), вторая —
+    пропорционально.
+    """
+    try:
+        import pymupdf as fitz
+        doc = fitz.open(src_pdf)
+        page = doc[0]
+        longest = max(page.rect.width, page.rect.height) or 1.0
+        dpi = round(72 * MAX_DIM / longest)
+        pix = page.get_pixmap(dpi=dpi)
+        pix.save(dst_png)
+        doc.close()
+        return os.path.exists(dst_png)
+    except Exception:
+        return False
+
+
+def render_page_png(src_pdf: str, dst_png: str) -> bool:
+    """PDF (1 стр.) -> PNG. Сначала sips (macOS, первый выбор), иначе PyMuPDF."""
+    if _sips_usable() and quartz_png(src_pdf, dst_png):
+        return True
+    return fitz_png(src_pdf, dst_png)
 
 
 def fill_ratio(png_path: str):
@@ -83,6 +131,12 @@ def fill_ratio(png_path: str):
 def main():
     if not os.path.exists(PDF):
         sys.exit(f"❌ Нет файла {PDF}. Сначала запусти scripts/render.py.")
+    if not _sips_usable() and not _fitz_usable():
+        sys.exit(
+            "❌ Нечем отрендерить страницы PDF в картинки: sips недоступен (не macOS "
+            "или отключён флагом DOCS_BUILDER_NO_SIPS), а PyMuPDF не установлен.\n"
+            "   Поставьте: .venv/bin/python -m pip install pymupdf"
+        )
     os.makedirs(OUT, exist_ok=True)
     reader = PdfReader(PDF)
     n = len(reader.pages)
@@ -96,8 +150,8 @@ def main():
             with open(one, "wb") as f:
                 w.write(f)
             dst = f"{OUT}/page{i + 1:02d}.png"
-            if not quartz_png(one, dst):
-                print(f"page{i + 1:02d}: ⚠ sips не отрендерил")
+            if not render_page_png(one, dst):
+                print(f"page{i + 1:02d}: ⚠ не отрендерил (ни sips, ни PyMuPDF)")
                 continue
             fill, is_dark, hole, край = fill_ratio(dst)
             if fill is None:
