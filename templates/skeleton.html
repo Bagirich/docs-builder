@@ -112,6 +112,83 @@ h1,h2,h3,.kicker,.num,.badge{font-family:var(--font-heading);font-weight:800;}
 /* Каталог ссылок: вся строка — кликабельный анкор */
 a.lnk{text-decoration:none;color:inherit;border-radius:8px;}
 
+/* ══ ИНФОГРАФИКА — ЭТАЛОННЫЙ НАБОР ═══════════════════════════════════════
+   Единый язык схем на весь документ: тонкая подпись капсом (.viz-cap) плюс
+   простая фигура, залитая вторым акцентом профиля. Работает и на светлой, и на
+   тёмной странице, и внутри тёмной врезки .dark-note — цвета берутся ролями.
+   ⛔ Рисуем только то, что есть в источнике. Нет данных — нет фигуры; шкала на
+   глазок и «примерно четыре платежа» — те же выдуманные числа, только картинкой.
+   Неизвестное количество показываем многоточием .dots, а не выдуманным числом.
+   Компоненты: viz-bar (окно-шкала) · viz-parts (равные доли) ·
+   viz-path (путь с остановкой) · viz-pair (было → стало).                    */
+.viz-cap{font-family:var(--font-heading);font-weight:700;font-size:7.8pt;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ink-soft);}
+.dark .viz-cap{color:var(--gold-soft);}
+
+/* шкала-окно: залитая часть = то, о чём говорит источник */
+.viz-bar{margin:16px 0 6px;}
+.viz-bar .track{height:14px;border-radius:8px;background:var(--gold-soft);
+  border:1px solid var(--line);position:relative;overflow:hidden;}
+.dark .viz-bar .track{background:rgba(var(--gold-rgb),.16);border-color:rgba(var(--gold-rgb),.3);}
+.viz-bar .fill{position:absolute;left:0;top:0;bottom:0;
+  background:linear-gradient(90deg,var(--accent-2),rgba(var(--accent-2-rgb),.5));}
+.viz-bar .marks{display:flex;justify-content:space-between;margin-top:7px;}
+
+/* равные доли: первая — то, что происходит сразу; .dots — неизвестное число */
+.viz-parts{display:flex;align-items:flex-end;gap:8px;margin:16px 0 10px;}
+.viz-parts .p{flex:1;height:44px;border-radius:8px 8px 6px 6px;position:relative;
+  background:var(--gold-soft);border:1px solid var(--line);}
+.dark .viz-parts .p{background:rgba(var(--gold-rgb),.18);border-color:rgba(var(--gold-rgb),.35);}
+.viz-parts .p.now{background:linear-gradient(180deg,var(--accent-2),rgba(var(--accent-2-rgb),.55));
+  border-color:var(--accent-2);}
+.viz-parts .p span{position:absolute;left:0;right:0;bottom:-19px;text-align:center;
+  font-family:var(--font-heading);font-weight:700;font-size:7.8pt;letter-spacing:.04em;
+  color:var(--ink-soft);}
+.dark .viz-parts .p span{color:var(--gold-soft);}
+.viz-parts .dots{flex:0 0 26px;height:44px;background:none;border:none;display:flex;
+  align-items:center;justify-content:center;font-size:14pt;color:var(--ink-soft);}
+.dark .viz-parts .dots{color:var(--gold-soft);}
+.viz-note{font-size:9.6pt;color:var(--ink-soft);margin-top:22px;}
+.dark .viz-note{color:var(--gold-soft);}
+
+/* путь: узлы цепочки, один помечен как остановка (.stop), недостижимый — .off */
+.viz-path{display:flex;align-items:stretch;gap:9px;margin-top:16px;}
+.viz-path .nd{flex:1;border-radius:10px;padding:11px 8px 12px;text-align:center;
+  background:var(--card);border:1px solid var(--line);}
+.dark .viz-path .nd,
+.dark-note .viz-path .nd{background:rgba(255,255,255,.07);border-color:rgba(var(--gold-rgb),.28);}
+.viz-path .nd b{display:block;font-family:var(--font-heading);font-weight:700;font-size:10pt;
+  color:var(--ink);line-height:1.2;}
+.dark .viz-path .nd b,
+.dark-note .viz-path .nd b{color:var(--warm-white);}
+.viz-path .nd small{display:block;margin-top:4px;font-family:var(--font-heading);font-weight:700;
+  font-size:7.5pt;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);}
+.dark .viz-path .nd small,
+.dark-note .viz-path .nd small{color:var(--gold-soft);}
+.viz-path .nd.stop{border-color:var(--accent-2);background:rgba(var(--accent-2-rgb),.12);}
+.viz-path .nd.stop small{color:var(--accent-2);}
+.viz-path .nd.off{opacity:.45;}
+.dark-note .viz-path .nd.off{opacity:.6;}
+.viz-path .ar{flex:none;display:flex;align-items:center;color:var(--accent-2);
+  font-family:var(--font-heading);font-weight:800;font-size:13pt;}
+
+/* пара «было → стало»: пунктирная рамка слева, сплошная с заливкой справа */
+.viz-pair{display:flex;align-items:center;gap:10px;margin-top:14px;}
+.viz-pair .bx{flex:1;border:1px dashed var(--line);border-radius:10px;padding:11px 12px;text-align:center;}
+.viz-pair .bx.hit{border-style:solid;border-color:var(--accent-2);background:rgba(var(--accent-2-rgb),.09);}
+.viz-pair .bx b{display:block;font-family:var(--font-heading);font-weight:700;font-size:9.5pt;
+  color:var(--ink);line-height:1.3;}
+.viz-pair .ar{flex:none;color:var(--accent-2);font-family:var(--font-heading);font-weight:800;font-size:13pt;}
+
+/* тёмный якорь на светлой странице: врезка, к которой цепляется глаз */
+.dark-note{background:linear-gradient(150deg,var(--navy),var(--graphite));border-radius:14px;
+  padding:22px 26px;display:flex;gap:16px;align-items:flex-start;position:relative;overflow:hidden;}
+.dark-note:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent-2);}
+.dark-note .ic{color:var(--accent-2);width:28px;height:28px;margin-top:2px;}
+.dark-note b{display:block;font-family:var(--font-heading);font-weight:700;font-size:12.8pt;
+  color:var(--warm-white);margin-bottom:7px;}
+.dark-note p{font-size:10.4pt;color:var(--gold-soft);line-height:1.6;margin:0;}
+
 /* ── PDF-SAFE: НИКАКИХ box-shadow (глобальный предохранитель) ──
    В печати (Quartz/Preview) полупрозрачные тени соседних карточек в плотных
    сетках накапливаются в зазорах и сливаются в тёмную «подложку». Бренд держится

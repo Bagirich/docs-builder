@@ -93,7 +93,7 @@ HTML+CSS и печатается в PDF через headless-Chromium. Брауз
 - **Правила:** `.claude/rules/qa-checklist.md` (проверка перед сдачей) ·
   `.claude/rules/learning-guide-spec.md` (инструкции со скриншотами — обязательно для мануалов).
 - **Оформление:** скилл `.claude/skills/document-design/SKILL.md` — роли цветов, кегли, блоки, визуал.
-- **Шаблоны:** `templates/skeleton.html` (каркас + весь CSS) · `templates/blocks/` (8 блоков) ·
+- **Шаблоны:** `templates/skeleton.html` (каркас + весь CSS) · `templates/blocks/` (9 блоков) ·
   `templates/icons.svg`.
 - **Команды:** `/setup` — завести или поправить профиль · `/pdf` — собрать документ.
 - **Учебный материал для первой пробы:** `учебные-материалы/`.
