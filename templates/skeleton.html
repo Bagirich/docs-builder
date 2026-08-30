@@ -135,7 +135,7 @@ a.lnk{text-decoration:none;color:inherit;border-radius:8px;}
 .viz-bar .marks{display:flex;justify-content:space-between;margin-top:7px;}
 
 /* равные доли: первая — то, что происходит сразу; .dots — неизвестное число */
-.viz-parts{display:flex;align-items:flex-end;gap:8px;margin:16px 0 10px;}
+.viz-parts{display:flex;align-items:flex-end;gap:8px;margin:16px 0 16px;}
 .viz-parts .p{flex:1;height:44px;border-radius:8px 8px 6px 6px;position:relative;
   background:var(--gold-soft);border:1px solid var(--line);}
 .dark .viz-parts .p{background:rgba(var(--gold-rgb),.18);border-color:rgba(var(--gold-rgb),.35);}
@@ -148,8 +148,9 @@ a.lnk{text-decoration:none;color:inherit;border-radius:8px;}
 .viz-parts .dots{flex:0 0 26px;height:44px;background:none;border:none;display:flex;
   align-items:center;justify-content:center;font-size:14pt;color:var(--ink-soft);}
 .dark .viz-parts .dots{color:var(--gold-soft);}
-.viz-note{font-size:9.6pt;color:var(--ink-soft);margin-top:22px;}
+.viz-note{font-size:9.6pt;color:var(--ink-soft);margin-top:26px;}
 .dark .viz-note{color:var(--gold-soft);}
+.card .viz-note,.money-card .viz-note{margin-top:26px;}
 
 /* путь: узлы цепочки, один помечен как остановка (.stop), недостижимый — .off */
 .viz-path{display:flex;align-items:stretch;gap:9px;margin-top:16px;}
@@ -167,6 +168,8 @@ a.lnk{text-decoration:none;color:inherit;border-radius:8px;}
 .dark-note .viz-path .nd small{color:var(--gold-soft);}
 .viz-path .nd.stop{border-color:var(--accent-2);background:rgba(var(--accent-2-rgb),.12);}
 .viz-path .nd.stop small{color:var(--accent-2);}
+.viz-path .nd.done{border-color:var(--accent-2);background:rgba(var(--accent-2-rgb),.12);}
+.viz-path .nd.done small{color:var(--accent-2);}
 .viz-path .nd.off{opacity:.45;}
 .dark-note .viz-path .nd.off{opacity:.6;}
 .viz-path .ar{flex:none;display:flex;align-items:center;color:var(--accent-2);

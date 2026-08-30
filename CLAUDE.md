@@ -90,7 +90,9 @@ HTML+CSS и печатается в PDF через headless-Chromium. Брауз
 
 ## 4 · Что где лежит
 
-- **Правила:** `.claude/rules/qa-checklist.md` (проверка перед сдачей) ·
+- **Правила:** `.claude/rules/канон-документа.md` (скелет любого документа: титул с
+  содержанием и пользой · факты источника визуально · финал с призывом и контактами) ·
+  `.claude/rules/qa-checklist.md` (проверка перед сдачей) ·
   `.claude/rules/learning-guide-spec.md` (инструкции со скриншотами — обязательно для мануалов).
 - **Оформление:** скилл `.claude/skills/document-design/SKILL.md` — роли цветов, кегли, блоки, визуал.
 - **Шаблоны:** `templates/skeleton.html` (каркас + весь CSS) · `templates/blocks/` (9 блоков) ·
