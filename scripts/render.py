@@ -13,6 +13,7 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else "output/output.pdf"
 
 
 def main():
+    был_раньше = os.path.exists(OUT)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     url = "file://" + os.path.abspath(SRC)
     with sync_playwright() as p:
@@ -60,6 +61,12 @@ def main():
         )
         browser.close()
     print(f"PDF готов: {OUT}")
+    if был_раньше:
+        print(
+            "↻ Файл перезаписан. Если он открыт во вкладке VS Code, там останется "
+            "СТАРАЯ картинка:\n  встроенный просмотр PDF читает файл один раз. "
+            "Обновить: Ctrl+Shift+P → Developer: Reload Window."
+        )
 
 
 if __name__ == "__main__":
