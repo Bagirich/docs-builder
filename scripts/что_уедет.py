@@ -13,6 +13,7 @@
     .venv/bin/python scripts/что_уедет.py <папка> --закрыть   # дописать находки в .gitignore
 """
 import argparse
+import fnmatch
 import re
 import subprocess
 import sys
@@ -56,6 +57,17 @@ from pathlib import Path
     ".m4a": "запись голоса",
     ".mp3": "запись голоса",
 }
+# Файлы, опасные самим именем: расширения у них нет, и по расширению их не поймать.
+# Именно сюда попадает `.env` — файл, в котором ученик хранит ключи доступа.
+ОПАСНЫЕ_ИМЕНА_ФАЙЛОВ = [
+    (".env", "файл с ключами доступа"),
+    ("id_rsa", "закрытый ключ доступа"),
+    ("id_ed25519", "закрытый ключ доступа"),
+    (".netrc", "сохранённые логины и пароли"),
+    (".npmrc", "токен доступа"),
+    ("credentials", "учётные данные"),
+    ("settings.local.json", "личные настройки машины"),
+]
 # Похоже на ключ доступа внутри файла
 ПОХОЖЕ_НА_КЛЮЧ = re.compile(
     r"(sk-[A-Za-z0-9_\-]{16,}|ghp_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_\-]{20,}|"
@@ -69,6 +81,30 @@ from pathlib import Path
 УЧЕБНОЕ = ("демо", "demo", "учебн", "образец", "образцы", "пример", "sample", "шаблон", "_шаблон", "test")
 
 
+def правила_исключений(папка):
+    """Строки .gitignore — то, что человек уже решил оставить дома."""
+    файл = папка / ".gitignore"
+    if not файл.exists():
+        return []
+    правила = []
+    for строка in файл.read_text(encoding="utf-8", errors="ignore").split("\n"):
+        строка = строка.split("#")[0].strip()
+        if строка and not строка.startswith("!"):
+            правила.append(строка.strip("/"))
+    return правила
+
+
+def закрыт(относительный, правила):
+    части = относительный.split("/")
+    for правило in правила:
+        if "/" in правило:
+            if fnmatch.fnmatch(относительный, правило) or относительный.startswith(правило + "/"):
+                return True
+        elif any(fnmatch.fnmatch(часть, правило) for часть in части):
+            return True
+    return False
+
+
 def файлы_под_git(папка):
     """Что реально уедет: git показывает это точнее любых догадок."""
     try:
@@ -77,18 +113,39 @@ def файлы_под_git(папка):
         )
         return [папка / с for с in готово.stdout.split("\n") if с.strip()], True
     except Exception:
+        # Истории версий ещё нет — считаем сами, но исключения уважаем:
+        # иначе после «дописать в исключения» список не изменится и человек решит,
+        # что защита не сработала.
+        правила = правила_исключений(папка)
         файлы = [
             п for п in папка.rglob("*")
             if п.is_file() and ".git" not in п.parts and "__pycache__" not in п.parts
+            and not закрыт(str(п.relative_to(папка)).replace("\\", "/"), правила)
         ]
         return файлы, False
 
 
 def чем_опасен(путь, корень):
     относительный = str(путь.relative_to(корень)).lower()
-    if any(у in относительный for у in УЧЕБНОЕ):
-        return []          # учебные данные и образцы уезжают вместе с системой — так и надо
     причины = []
+
+    # Ключи и пароли ищем всегда — даже в учебных папках
+    имя = путь.name.lower()
+    for кусок, что_это in ОПАСНЫЕ_ИМЕНА_ФАЙЛОВ:
+        if имя == кусок or имя.startswith(кусок):
+            причины.append(что_это)
+            break
+    if путь.suffix.lower() in ТЕКСТОВЫЕ or not путь.suffix:
+        try:
+            if путь.stat().st_size < 2_000_000 and ПОХОЖЕ_НА_КЛЮЧ.search(
+                путь.read_text(encoding="utf-8", errors="ignore")
+            ):
+                причины.append("⚠️ внутри похоже на ключ доступа")
+        except Exception:
+            pass
+
+    if any(у in относительный for у in УЧЕБНОЕ):
+        return причины     # учебные данные и образцы уезжают вместе с системой — так и надо
     for кусок, что_это in ОПАСНЫЕ_ИМЕНА:
         совпало = re.search(кусок, относительный) if кусок.startswith(r"\b") else (кусок in относительный)
         if совпало:
@@ -97,12 +154,6 @@ def чем_опасен(путь, корень):
     подпись = ОПАСНЫЕ_РАСШИРЕНИЯ.get(путь.suffix.lower())
     if подпись:
         причины.append(подпись)
-    if путь.suffix.lower() in ТЕКСТОВЫЕ and путь.stat().st_size < 2_000_000:
-        try:
-            if ПОХОЖЕ_НА_КЛЮЧ.search(путь.read_text(encoding="utf-8", errors="ignore")):
-                причины.append("⚠️ внутри похоже на ключ доступа")
-        except Exception:
-            pass
     return причины
 
 
@@ -129,7 +180,8 @@ def main():
             подозрительные.append((ф.relative_to(корень), причины))
 
     print(f"Папка: {корень}")
-    print(f"Уедет файлов: {len(файлы)}" + ("" if под_git else "  (git ещё не заведён — считаю все)"))
+    подпись = "" if под_git else "  (истории версий ещё нет — считаю всё, кроме закрытого в исключениях)"
+    print(f"Уедет файлов: {len(файлы)}{подпись}")
     print()
 
     if not подозрительные:
@@ -145,9 +197,14 @@ def main():
     if len(подозрительные) > 60:
         print(f"   … и ещё {len(подозрительные) - 60}")
 
-    правила = sorted({
+    сырые = sorted({
         (str(п.parent) + "/") if str(п.parent) != "." else п.name for п, _ in подозрительные
     })
+    # «данные/» уже закрывает «данные/чеки/» — вложенные не пишем, чтобы список читался
+    правила = [
+        п for п in сырые
+        if not any(д != п and п.startswith(д) for д in сырые if д.endswith("/"))
+    ]
     print("\nЧто добавить в `.gitignore`, чтобы это осталось дома:\n")
     for п in правила:
         print(f"   {п}")
@@ -157,13 +214,15 @@ def main():
         было = файл.read_text(encoding="utf-8") if файл.exists() else ""
         новые = [п for п in правила if п not in было]
         if новые:
+            шапка = (было.rstrip("\n") + "\n\n") if было.strip() else ""
             файл.write_text(
-                было.rstrip("\n") + "\n\n# Личное — на полку не уезжает (scripts/что_уедет.py)\n"
+                шапка + "# Личное — на полку не уезжает (scripts/что_уедет.py)\n"
                 + "\n".join(новые) + "\n",
                 encoding="utf-8",
             )
             print(f"\n✅ Дописано в .gitignore правил: {len(новые)}")
-            print("   Проверьте ещё раз: .venv/bin/python scripts/что_уедет.py")
+            куда = "" if корень == Path.cwd() else f' "{корень}"'
+            print(f"   Проверьте ещё раз: .venv/bin/python scripts/что_уедет.py{куда}")
         else:
             print("\n.gitignore уже всё это закрывает.")
     else:
