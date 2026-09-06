@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PY = str(ROOT / ".venv" / "bin" / "python")
+PY = sys.executable
 ПРОБНИК = ROOT / "самопроверка.html"
 ТЕМА = ROOT / "context" / "theme.css"
 PDF = ROOT / "output" / "самопроверка.pdf"
