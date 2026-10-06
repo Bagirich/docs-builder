@@ -24,9 +24,15 @@ from pathlib import Path
 КОРЕНЬ = Path(__file__).resolve().parent.parent
 МСК = timezone(timedelta(hours=3))
 
+# Windows печатает в cp1251, и на значке ⚠️ скрипт падал — печатаем в UTF-8
+for _поток in (sys.stdout, sys.stderr):
+    if hasattr(_поток, "reconfigure"):
+        _поток.reconfigure(encoding="utf-8", errors="replace")
+
 
 def git(*аргументы: str, тихо: bool = False) -> tuple[int, str]:
-    р = subprocess.run(["git", *аргументы], cwd=КОРЕНЬ, capture_output=True, text=True)
+    р = subprocess.run(["git", *аргументы], cwd=КОРЕНЬ, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")  # git отдаёт UTF-8, а Windows читала бы как cp1251
     вывод = (р.stdout + р.stderr).strip()
     if р.returncode != 0 and not тихо:
         print(вывод, file=sys.stderr)
