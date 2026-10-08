@@ -6,10 +6,18 @@ output/самопроверка.pdf. Если этот файл получилс
 
 Запуск:  .venv/bin/python scripts/selftest.py
 """
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
+
+# Windows печатает в cp1251, и на значке → скрипт падал — печатаем в UTF-8
+for _поток in (sys.stdout, sys.stderr):
+    if hasattr(_поток, "reconfigure"):
+        _поток.reconfigure(encoding="utf-8", errors="replace")
+# то же для запускаемых скриптов: их вывод читаем как UTF-8
+ОКРУЖЕНИЕ = {**os.environ, "PYTHONIOENCODING": "utf-8"}
 
 ROOT = Path(__file__).resolve().parent.parent
 PY = sys.executable
@@ -65,7 +73,8 @@ a{color:var(--burgundy);}
 
 def шаг(описание, команда):
     print(f"→ {описание}")
-    готово = subprocess.run(команда, cwd=ROOT, capture_output=True, text=True)
+    готово = subprocess.run(команда, cwd=ROOT, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=ОКРУЖЕНИЕ)
     if готово.returncode != 0:
         print(готово.stdout.strip())
         print(готово.stderr.strip())
