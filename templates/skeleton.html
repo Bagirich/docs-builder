@@ -28,6 +28,8 @@ h1,h2,h3,.kicker,.num,.badge{font-family:var(--font-heading);font-weight:800;}
 .dark  em{color:var(--gold);font-style:normal;}
 .kicker{font-family:var(--font-heading);font-weight:700;font-size:9pt;letter-spacing:.18em;
         text-transform:uppercase;color:var(--gold);}
+/* На светлом фоне золото не читается (и брендбуки его там запрещают) — берём акцент */
+.light .kicker{color:var(--burgundy);}
 
 /* Значки из templates/icons.svg: <svg class="ic"><use href="#growth"/></svg>.
    Базовый стиль живёт здесь, а не переписывается в каждом документе заново. */

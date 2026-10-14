@@ -40,6 +40,7 @@ body{font-family:var(--font-body);font-size:10.5pt;line-height:1.55;}
 h1{font-family:var(--font-heading);font-weight:800;font-size:26pt;margin-bottom:10mm;}
 .kicker{font-family:var(--font-heading);font-weight:700;font-size:9pt;letter-spacing:.18em;
   text-transform:uppercase;color:var(--gold);margin-bottom:6mm;}
+.light .kicker{color:var(--burgundy);}
 .light em{color:var(--burgundy);font-style:normal;}
 .dark em{color:var(--gold);font-style:normal;}
 a{color:var(--burgundy);}
